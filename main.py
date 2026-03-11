@@ -236,6 +236,8 @@ def handle_text(message):
         msg = bot.send_message(chat_id, "🔎 Qidirilmoqda, biroz kuting...")
         
         try:
+                ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android']}}
+
             ydl_opts = {'extract_flat': True, 'quiet': True}
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(f"ytsearch10:{text}", download=False)
