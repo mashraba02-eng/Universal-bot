@@ -8,15 +8,18 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, BotCommand
 # --- 1. API VA SOZLAMALAR ---
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 AUDD_API = os.getenv("AUDD_API")
-ADMIN_ID = int(os.getenv("ADMIN_ID", 123456789)) # O'zingizning Telegram ID raqamingiz
+ADMIN_ID = int(os.getenv("ADMIN_ID", 123456789))
 
 bot = telebot.TeleBot(TOKEN)
 DOWNLOAD_PATH = "downloads"
 
+# Qidiruv natijalarini vaqtincha saqlash uchun lug'at (Yangi tizim)
+SEARCH_RESULTS = {}
+
 if not os.path.exists(DOWNLOAD_PATH):
     os.makedirs(DOWNLOAD_PATH)
 
-# --- 2. MA'LUMOTLAR BAZASI (SQLite) ---
+# --- 2. MA'LUMOTLAR BAZASI ---
 conn = sqlite3.connect('bot_database.db', check_same_thread=False)
 cursor = conn.cursor()
 cursor.execute('''
@@ -58,73 +61,50 @@ LANG = {
                    "Bot orqali quyidagilarni yuklab olishingiz mumkin:\n\n"
                    "• **Instagram** - post, Reels va IGTV + audio;\n"
                    "• **TikTok** - suv belgisiz video + audio;\n"
-                   "• **YouTube** - video va MP3 formatlar;\n"
-                   "• **Facebook** - video va audio;\n"
-                   "• **Snapchat** - suv belgisiz video + audio;\n"
-                   "• **Likee** - suv belgisiz video + audio;\n"
-                   "• **Pinterest** - video va rasmlar + audio;\n\n"
+                   "• **YouTube** - video va audio;\n"
+                   "• **Spotify/SoundCloud** kabi musiqalar qidiruvi;\n\n"
                    "🎧 **Shazam funksiyasi (Musiqa qidiruv):**\n"
                    "• Qo‘shiq nomi yoki ijrochi ismi orqali\n"
                    "• Ovozli xabar (Voice) orqali\n"
-                   "• Audio fayl (MP3) orqali\n\n"
-                   "🚀 **Yuklab olmoqchi bo'lgan videoga havolani yuboring yoki qo'shiq nomini yozing!**\n"
-                   "😎 **Bot guruhlarda ham ishlay oladi!**",
+                   "• Audio fayl orqali\n\n"
+                   "🚀 **Havolani yuboring yoki qo'shiq nomini yozing!**",
         "downloading": "⏳ Yuklanmoqda...",
         "song_not_found": "❌ Qo‘shiq topilmadi",
         "choose_format": "🔽 Formatni tanlang:",
         "video": "📹 Video",
-        "audio": "🎵 MP3",
-        "tt_video": "📹 Suv belgisiz (No Watermark)",
+        "audio": "🎵 Audio",
+        "tt_video": "📹 Suv belgisiz",
         "tt_audio": "🎵 TikTok Musiqasi",
-        "not_found": "❌ Video yoki media topilmadi",
-        "error": "❌ Xatolik yuz berdi. Fayl juda katta (50MB+) bo'lishi mumkin."
+        "not_found": "❌ Topilmadi",
+        "error": "❌ Xatolik yuz berdi. Iltimos, qayta urinib ko'ring."
     },
     "ru": {
         "welcome": "🔥 **Добро пожаловать в Universal Downloader бот!**\n\n"
-                   "Через бота вы можете скачивать:\n\n"
-                   "• **Instagram** - посты, Reels и IGTV;\n"
-                   "• **TikTok** - видео без водяного знака;\n"
-                   "• **YouTube** - видео и MP3;\n"
-                   "• **Facebook** - видео и аудио;\n"
-                   "• **Snapchat, Likee, Pinterest** - медиа;\n\n"
-                   "🎧 **Функция Shazam (Поиск музыки):**\n"
-                   "• По названию песни или исполнителю\n"
-                   "• Через голосовое сообщение (Voice)\n"
-                   "• Через аудиофайл (MP3)\n\n"
-                   "🚀 **Отправьте ссылку на видео или напишите название песни!**\n"
-                   "😎 **Бот также работает в группах!**",
+                   "Через бота вы можете скачивать медиа из соцсетей, а также искать музыку!\n\n"
+                   "🚀 **Отправьте ссылку на видео или напишите название песни!**",
         "downloading": "⏳ Загрузка...",
         "song_not_found": "❌ Песня не найдена",
         "choose_format": "🔽 Выберите формат:",
         "video": "📹 Видео",
-        "audio": "🎵 MP3",
+        "audio": "🎵 Аудио",
         "tt_video": "📹 Без водяного знака",
         "tt_audio": "🎵 Музыка из TikTok",
-        "not_found": "❌ Медиа не найдено",
-        "error": "❌ Ошибка. Возможно, файл больше 50 МБ."
+        "not_found": "❌ Не найдено",
+        "error": "❌ Произошла ошибка."
     },
     "en": {
-        "welcome": "🔥 **Welcome to Universal Downloader bot!**\n\n"
-                   "You can download from:\n\n"
-                   "• **Instagram** - post, Reels, IGTV;\n"
-                   "• **TikTok** - video without watermark;\n"
-                   "• **YouTube** - video and MP3;\n"
-                   "• **Facebook, Snapchat, Likee, Pinterest**;\n\n"
-                   "🎧 **Shazam Function (Music Search):**\n"
-                   "• By song name or artist\n"
-                   "• Via voice message\n"
-                   "• Via audio file\n\n"
-                   "🚀 **Send a link to the video or type a song name!**\n"
-                   "😎 **Bot also works in groups!**",
+        "welcome": "🔥 **Welcome to Universal Downloader!**\n\n"
+                   "Download media from social networks or search for music!\n\n"
+                   "🚀 **Send a link or type a song name!**",
         "downloading": "⏳ Downloading...",
         "song_not_found": "❌ Song not found",
         "choose_format": "🔽 Choose format:",
         "video": "📹 Video",
-        "audio": "🎵 MP3",
+        "audio": "🎵 Audio",
         "tt_video": "📹 No Watermark",
         "tt_audio": "🎵 TikTok Audio",
-        "not_found": "❌ Media not found",
-        "error": "❌ Error. File might be larger than 50MB."
+        "not_found": "❌ Not found",
+        "error": "❌ An error occurred."
     }
 }
 
@@ -148,7 +128,7 @@ def stat_command(message):
 @bot.message_handler(commands=['send'])
 def send_command(message):
     if message.chat.id == ADMIN_ID:
-        msg = bot.send_message(message.chat.id, "Barchaga yuboriladigan xabarni jo'nating (Rasm, video yoki matn):")
+        msg = bot.send_message(message.chat.id, "Barchaga yuboriladigan xabarni jo'nating:")
         bot.register_next_step_handler(msg, broadcast_message)
 
 def broadcast_message(message):
@@ -163,7 +143,7 @@ def broadcast_message(message):
             pass
     bot.send_message(ADMIN_ID, f"✅ Xabar muvaffaqiyatli {count} ta foydalanuvchiga yuborildi!")
 
-# --- 6. START VA TIL TANLASH ---
+# --- 6. START VA TILLAR ---
 @bot.message_handler(commands=['start', 'lang'])
 def start(message):
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -183,7 +163,7 @@ def set_lang(message):
     markup = ReplyKeyboardRemove()
     bot.send_message(chat_id, get_text(chat_id, "welcome"), reply_markup=markup, parse_mode="Markdown")
 
-# --- 7. LINK VA MATN ORQALI QIDIRUV (TOP-10) ---
+# --- 7. LINK VA MATN ORQALI QIDIRUV (SoundCloud Tizimi) ---
 @bot.message_handler(content_types=['text'])
 def handle_text(message):
     text = message.text
@@ -215,24 +195,23 @@ def handle_text(message):
             )
         bot.send_message(chat_id, get_text(chat_id, "choose_format"), reply_markup=markup)
 
-    # AGAR XABAR ODDIY SO'Z BO'LSA (10 TALIK QIDIRUV)
+    # AGAR XABAR ODDIY SO'Z BO'LSA (SOUNDCLOUD ORQALI QIDIRUV)
     else:
         msg = bot.send_message(chat_id, "🔎 Qidirilmoqda, biroz kuting...")
         
         try:
             ydl_opts = {'extract_flat': True, 'quiet': True}
-            # YOUTUBE BLOKINI AYLANIB O'TISH UCHUN QO'SHILDI
-            ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android']}}
-            
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(f"ytsearch10:{text}", download=False)
+                # YouTube o'rniga SoundCloud ulandi (scsearch10)
+                info = ydl.extract_info(f"scsearch10:{text}", download=False)
             
             entries = info.get('entries', [])
             if not entries:
                 bot.edit_message_text("❌ Hech narsa topilmadi.", chat_id, msg.message_id)
                 return
             
-            result_text = f"🎧 **{text}** qidiruv natijalari:\n\n"
+            SEARCH_RESULTS[chat_id] = {}
+            result_text = f"🎧 **{text}** qidiruv natijalari (SoundCloud):\n\n"
             markup = InlineKeyboardMarkup(row_width=5)
             buttons = []
             
@@ -245,10 +224,11 @@ def handle_text(message):
                     duration_str = "Noma'lum"
                     
                 title = entry.get('title', 'Nomsiz')
-                video_id = entry.get('id')
+                url = entry.get('url')
                 
+                SEARCH_RESULTS[chat_id][str(i+1)] = url
                 result_text += f"**{i+1}.** {title} ⏱ {duration_str}\n"
-                buttons.append(InlineKeyboardButton(str(i+1), callback_data=f"dla_{video_id}"))
+                buttons.append(InlineKeyboardButton(str(i+1), callback_data=f"dlm_{i+1}"))
             
             markup.add(*buttons)
             bot.delete_message(chat_id, msg.message_id)
@@ -264,16 +244,20 @@ def callback(call):
     chat_id = call.message.chat.id
     bot.answer_callback_query(call.id)
     
-    # 1. QIDIRUV RO'YXATIDAN (1-10) BIRORTASI BOSILSA
-    if call.data.startswith("dla_"):
-        video_id = call.data.split("_")[1]
-        url = f"https://www.youtube.com/watch?v={video_id}"
+    # SOUNDCLOUD QIDIRUV RO'YXATIDAN TUGMA BOSILSA
+    if call.data.startswith("dlm_"):
+        idx = call.data.split("_")[1]
+        url = SEARCH_RESULTS.get(chat_id, {}).get(idx)
         
+        if not url:
+            bot.answer_callback_query(call.id, "❌ Qidiruv eskirgan, matnni qayta yozib qidiring!", show_alert=True)
+            return
+            
         bot.edit_message_text(get_text(chat_id, "downloading"), chat_id, call.message.message_id)
         ytdlp_download(chat_id, url, format_type="audio")
         return
         
-    # 2. QOLGAN ODDIY LINK TUGMALARI UCHUN
+    # QOLGAN ODDIY LINK TUGMALARI UCHUN
     _, url = get_user(chat_id)
     if not url:
         bot.send_message(chat_id, get_text(chat_id, "error"))
@@ -307,13 +291,13 @@ def ytdlp_download(chat_id, url, format_type):
         elif format_type == "best":
             ydl_opts = {"format": "best", "outtmpl": f"{DOWNLOAD_PATH}/%(title)s_%(id)s.%(ext)s"}
         else:
+            # Sof audio yuklash (FFmpeg xatosi bermaydi)
             ydl_opts = {
                 "format": "bestaudio/best",
-                "outtmpl": f"{DOWNLOAD_PATH}/%(title)s_%(id)s.%(ext)s",
-                "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}]
+                "outtmpl": f"{DOWNLOAD_PATH}/%(title)s_%(id)s.%(ext)s"
             }
 
-        # YOUTUBE BLOKINI AYLANIB O'TISH UCHUN QO'SHILDI
+        # Agar foydalanuvchi YT link tashlasa deb qoldirildi
         ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android']}}
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -321,7 +305,6 @@ def ytdlp_download(chat_id, url, format_type):
             file = ydl.prepare_filename(info)
 
         if format_type == "audio":
-            file = os.path.splitext(file)[0] + ".mp3"
             with open(file, "rb") as a:
                 bot.send_audio(chat_id, a)
         else:
@@ -330,6 +313,7 @@ def ytdlp_download(chat_id, url, format_type):
                 
         os.remove(file)
     except Exception as e:
+        print(f"Xatolik: {e}")
         bot.send_message(chat_id, get_text(chat_id, "error"))
 
 def tiktok_download(chat_id, url, type):
@@ -347,7 +331,7 @@ def tiktok_download(chat_id, url, type):
     except Exception:
         bot.send_message(chat_id, get_text(chat_id, "error"))
 
-# --- 10. SHAZAM (QO'SHIQ ANIQLASH VA YUKLASH) ---
+# --- 10. SHAZAM FUNKSIYASI ---
 @bot.message_handler(content_types=['audio', 'voice'])
 def shazam(message):
     chat_id = message.chat.id
@@ -373,7 +357,8 @@ def shazam(message):
             title = result['result']['title']
             artist = result['result']['artist']
             
-            search_query = f"ytsearch1:{artist} - {title} audio"
+            # Shazam ham endi xavfsiz SoundCloud dan qidiradi
+            search_query = f"scsearch1:{artist} - {title}"
             update_link(chat_id, search_query)
 
             markup = InlineKeyboardMarkup()
