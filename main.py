@@ -4,22 +4,6 @@ import telebot
 import yt_dlp
 import requests
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, BotCommand, ReplyKeyboardMarkup, ReplyKeyboardRemove
-from flask import Flask
-from threading import Thread
-
-# --- 0. 24/7 ISHLASHI UCHUN WEB-SERVER (UPTIME) ---
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "Bot ishlab turibdi!"
-
-def run():
-    app.run(host='0.0.0.0', port=8080)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
 
 # --- 1. API VA SOZLAMALAR ---
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -236,9 +220,10 @@ def handle_text(message):
         msg = bot.send_message(chat_id, "🔎 Qidirilmoqda, biroz kuting...")
         
         try:
-                ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android']}}
-
             ydl_opts = {'extract_flat': True, 'quiet': True}
+            # YOUTUBE BLOKINI AYLANIB O'TISH UCHUN QO'SHILDI
+            ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android']}}
+            
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(f"ytsearch10:{text}", download=False)
             
@@ -279,7 +264,7 @@ def callback(call):
     chat_id = call.message.chat.id
     bot.answer_callback_query(call.id)
     
-    # 1. QIDIRUV RO'YXATIDAN BIRORTASI BOSILSA
+    # 1. QIDIRUV RO'YXATIDAN (1-10) BIRORTASI BOSILSA
     if call.data.startswith("dla_"):
         video_id = call.data.split("_")[1]
         url = f"https://www.youtube.com/watch?v={video_id}"
@@ -328,6 +313,9 @@ def ytdlp_download(chat_id, url, format_type):
                 "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}]
             }
 
+        # YOUTUBE BLOKINI AYLANIB O'TISH UCHUN QO'SHILDI
+        ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android']}}
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             file = ydl.prepare_filename(info)
@@ -341,7 +329,7 @@ def ytdlp_download(chat_id, url, format_type):
                 bot.send_video(chat_id, v)
                 
         os.remove(file)
-    except Exception:
+    except Exception as e:
         bot.send_message(chat_id, get_text(chat_id, "error"))
 
 def tiktok_download(chat_id, url, type):
@@ -407,6 +395,5 @@ def shazam(message):
         if os.path.exists(temp_filename):
             os.remove(temp_filename)
 
-print("Bot va Web-server ishga tushirildi...")
-keep_alive() # Web serverni ishga tushirish (Uptime uchun)
+print("Bot ishlayapti...")
 bot.infinity_polling()
